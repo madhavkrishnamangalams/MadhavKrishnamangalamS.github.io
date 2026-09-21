@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A fixed 24 °C setpoint beat my reinforcement learner | Madhav Krishnamangalam S</title>
+<meta name="description" content="Offline RL for price-responsive cooling control, evaluated at three levels of fidelity. Only open-loop replay misleads: in closed loop, a fixed 24 °C setpoint has the lowest cost and comfort penalty.">
+<meta name="theme-color" content="#061019">
+<link rel="icon" href="../../media/favicon.png">
+<link rel="canonical" href="https://madhavkrishnamangalams.github.io/projects/offline-rl-hvac/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A fixed 24 °C setpoint beat my reinforcement learner">
+<meta property="og:description" content="Offline RL for cooling control, evaluated three ways. The open-loop winner lost once the loop closed.">
+<meta property="og:url" content="https://madhavkrishnamangalams.github.io/projects/offline-rl-hvac/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#061019;--bg-raised:#0A1826;
+    --ink:#E7EDF3;--ink-dim:#94A5B5;--ink-faint:#5D7085;
+    --rule:rgba(231,237,243,.13);--rule-strong:rgba(231,237,243,.26);
+    --ember:#E8A33D;--plum:#B8566A;
+    --display:"Archivo Expanded","Archivo",system-ui,sans-serif;
+    --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --pad:clamp(20px,5vw,72px);
+    --meta-col:minmax(96px,140px);
+    --gap:clamp(12px,3vw,40px);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 var(--pad)}
+
+  .topbar{display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding-top:26px;flex-wrap:wrap}
+  .mark{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.01em;text-decoration:none}
+  .topnav{display:flex;gap:22px;font-size:14.5px;color:var(--ink-dim)}
+  .topnav a{text-decoration:none;padding-bottom:2px;border-bottom:1px solid transparent}
+  .topnav a:hover{color:var(--ink);border-bottom-color:var(--ember)}
+
+  .row{display:grid;grid-template-columns:var(--meta-col) 1fr;gap:var(--gap)}
+  .meta{font-size:13.5px;color:var(--ink-faint);line-height:1.4;padding-top:4px;font-variant-numeric:tabular-nums;margin:0}
+  .meta .hi{color:var(--ember)}
+
+  .head{padding:clamp(56px,10vw,120px) 0 clamp(40px,6vw,72px)}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,4.6vw,58px);line-height:1.02;letter-spacing:-.02em;margin:0 0 24px;max-width:20ch}
+  .lede{font-size:clamp(17px,1.5vw,20px);line-height:1.5;max-width:54ch;margin:0}
+
+  section{padding:clamp(48px,7vw,96px) 0;border-top:1px solid var(--rule)}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(22px,2.6vw,32px);line-height:1.1;letter-spacing:-.015em;margin:0 0 10px}
+  .note{color:var(--ink-dim);max-width:60ch;margin:0 0 36px;font-size:16.5px}
+  .prose{max-width:62ch}
+  .prose p{margin:0 0 14px;font-size:16.5px;color:var(--ink-dim)}
+  .prose strong{color:var(--ink);font-weight:500}
+  .prose h3{font-family:var(--display);font-weight:600;font-size:18px;margin:30px 0 8px;color:var(--ink)}
+
+  /* ---------- the fidelity ladder ---------- */
+  .fid-bar{height:7px;border-radius:1px;border:1px solid var(--rule);
+    background:linear-gradient(to right,#061019,#1C2654,#682D5A,#BA4A3C,#E8A33D,#FFF1D0)}
+  .fid-ends{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-faint);margin:8px 0 0}
+  .stages{display:grid;grid-template-columns:repeat(3,1fr);gap:0 clamp(16px,3vw,40px);margin-top:28px}
+  .stage{border-top:1px solid var(--rule-strong);padding-top:18px}
+  .stage h3{font-family:var(--display);font-weight:600;font-size:17px;line-height:1.3;margin:0 0 8px}
+  .stage .how{font-size:14.5px;color:var(--ink-faint);margin:0 0 18px;max-width:34ch}
+  .verdict{font-size:15.5px;color:var(--ink-dim);margin:0;max-width:36ch}
+  .verdict b{display:block;font-family:var(--display);font-weight:600;font-size:clamp(18px,1.8vw,22px);line-height:1.2;color:var(--ink);margin-bottom:6px}
+  .stage.misled{border-top:2px solid var(--plum)}
+  .stage.misled .verdict b{color:var(--plum)}
+  .stage.truth{border-top:2px solid var(--ember)}
+  .stage.truth .verdict b{color:var(--ember)}
+  @media (max-width:820px){.stages{grid-template-columns:1fr;gap:28px}}
+
+  /* ---------- setup list ---------- */
+  .spec{border-top:1px solid var(--rule)}
+  .spec .row{padding:18px 0;border-bottom:1px solid var(--rule)}
+  .spec p:not(.meta){margin:0;font-size:16px;color:var(--ink-dim);max-width:64ch}
+  .spec strong{color:var(--ink);font-weight:500}
+
+  /* ---------- results table ---------- */
+  .tbl-wrap{overflow-x:auto;margin:0 0 40px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums;font-size:15.5px}
+  caption{text-align:left;font-size:13.5px;color:var(--ink-faint);padding-bottom:12px}
+  th,td{padding:11px 16px 11px 0;text-align:right;border-bottom:1px solid var(--rule)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-weight:500;font-size:13.5px;color:var(--ink-faint);border-bottom:1px solid var(--rule-strong)}
+  tbody td{color:var(--ink-dim)}
+  tr.win td{color:var(--ember)}
+  tr.after td{color:var(--ink-faint);font-style:italic}
+
+  /* ---------- strip chart ---------- */
+  .chart{margin:0}
+  .chart-scroll{overflow-x:auto}
+  .strip{width:100%;min-width:560px;height:auto;display:block}
+  .strip .grid{stroke:var(--rule);stroke-width:1}
+  .strip .lane{stroke:var(--rule);stroke-width:1}
+  .strip .tick{fill:var(--ink-faint);font:12px var(--body)}
+  .strip .plab{fill:var(--ink-dim);font:14px var(--body)}
+  .strip .plab.win{fill:var(--ember)}
+  .strip .dot{fill:var(--ink-dim);fill-opacity:.55}
+  .strip .dot.win{fill:var(--ember);fill-opacity:.8}
+  .strip .med{stroke:var(--ink);stroke-width:2}
+  .chart figcaption,.fig figcaption{font-size:13.5px;color:var(--ink-faint);margin-top:12px;line-height:1.5;max-width:64ch}
+
+  /* ---------- paper figures (white background plots) ---------- */
+  .figs{display:grid;grid-template-columns:1fr 1fr;gap:28px 22px;margin-top:32px}
+  .fig{margin:0}
+  .fig img{width:100%;height:auto;display:block;border-radius:2px;background:#fff;padding:10px}
+  @media (max-width:760px){.figs{grid-template-columns:1fr}}
+
+  /* ---------- status ---------- */
+  .status .row{padding:22px 0;border-top:1px solid var(--rule)}
+  .status .row:last-child{border-bottom:1px solid var(--rule)}
+  .status ul{margin:0;padding:0;list-style:none;max-width:64ch}
+  .status li{position:relative;padding:4px 0 4px 20px;font-size:16px;color:var(--ink-dim)}
+  .status li::before{content:"";position:absolute;left:0;top:13px;width:8px;height:8px;border-radius:50%;border:1px solid var(--ink-faint)}
+  .status .done li::before{background:var(--ink-dim);border-color:var(--ink-dim)}
+  .status .now li::before{border-color:var(--ember);background:linear-gradient(to right,var(--ember) 50%,transparent 50%)}
+  .status p:not(.meta){margin:0;font-size:16px;color:var(--ink-dim);max-width:64ch}
+
+  .stack{font-size:14px;color:var(--ink-faint);margin:26px 0 0}
+  .stack span{display:inline-block;border:1px solid var(--rule);border-radius:2px;padding:3px 9px;margin:0 6px 6px 0}
+
+  footer{border-top:1px solid var(--rule);padding:clamp(40px,6vw,72px) 0}
+  .foot{display:flex;flex-wrap:wrap;gap:14px 40px;font-size:16px}
+  .foot a{text-decoration:none;border-bottom:1px solid var(--rule-strong);padding-bottom:3px}
+  .foot a:hover{color:var(--ember);border-bottom-color:var(--ember)}
+
+  @media (max-width:720px){
+    .row{grid-template-columns:1fr;gap:6px}
+    .meta{padding-top:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="topbar">
+    <a class="mark" href="../../">Madhav Krishnamangalam S</a>
+    <nav class="topnav" aria-label="Site">
+      <a href="../../#work">All work</a>
+      <a href="../../MadhavKrishnamangalamS_Resume.pdf">CV</a>
+      <a href="../../#contact">Contact</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="row head">
+      <p class="meta">2026<br>Independent research<br><span class="hi">Paper under review, TCCML NeurIPS 2026 Workshop</span></p>
+      <div>
+        <h1>A fixed 24&#8202;°C setpoint beat my reinforcement learner</h1>
+        <p class="lede">Offline reinforcement learning for price-responsive cooling control, evaluated at three levels of fidelity. The learned policy that looked best in open-loop replay lost to a constant setpoint once its actions could feed back into the building.</p>
+      </div>
+    </div>
+  </div>
+
+  <section aria-labelledby="ladder-h">
+    <div class="wrap">
+      <h2 id="ladder-h">The same policies, judged three ways</h2>
+      <p class="note">Each stage removes one source of open-loop optimism. Only the middle stage misleads, and it is the one most projects stop at.</p>
+
+      <div class="fid-bar" aria-hidden="true"></div>
+      <p class="fid-ends"><span>Cheaper, less faithful</span><span>Closer to deployment</span></p>
+      <div class="stages">
+        <div class="stage">
+          <h3>Learned dynamics model</h3>
+          <p class="how">Policies rolled forward 2, 4 and 8 hours through a one-step dynamics model, from four daily starts over all 365 days.</p>
+          <p class="verdict"><b>Fixed 24&#8202;°C and CQL lead</b>Fixed wins at 2 and 8 hours, CQL at 4, at every comfort weight tested. CQL-HP and the router degrade as the horizon grows.</p>
+        </div>
+        <div class="stage misled">
+          <h3>Open-loop EnergyPlus replay</h3>
+          <p class="how">Each policy's actions become a setpoint schedule run in the real simulator, but the policy never sees the result of its earlier actions.</p>
+          <p class="verdict"><b>CQL-HP looks like the winner</b>Daily comfort penalty 84.6 against 147.8 for the fixed setpoint, more than offsetting $9.64 a day of extra cost.</p>
+        </div>
+        <div class="stage truth">
+          <h3>Closed-loop EnergyPlus replay</h3>
+          <p class="how">True zone temperatures are read back into the state every five minutes, and the policy acts on them.</p>
+          <p class="verdict"><b>Fixed 24&#8202;°C wins</b>Lowest mean cost and comfort penalty across 18 cooling-active episodes. CQL-HP is now the most expensive policy.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="setup-h">
+    <div class="wrap">
+      <h2 id="setup-h">What was built</h2>
+      <p class="note">You cannot run online RL against an occupied building, so the policy has to be learned from logged data and trusted before it touches a thermostat.</p>
+      <div class="spec">
+        <div class="row"><p class="meta">Building</p><p>ASHRAE 90.1 medium office in New York, 15 zones, a year of EnergyPlus simulation at 5-minute steps to match NYISO's real-time price updates.</p></div>
+        <div class="row"><p class="meta">Data</p><p><strong>523,775 transitions</strong> from five logged behavior policies (baseline, comfort-biased, cost-shed, pre-cooling), merged with 2023 NYISO Zone J prices and split by day into summer, winter, shoulder and high-price test sets.</p></div>
+        <div class="row"><p class="meta">Control</p><p>One cooling setpoint between about 21 and 26.5&#8202;°C for all zones. Reward trades electricity cost against an occupancy-gated comfort penalty.</p></div>
+        <div class="row"><p class="meta">Policies</p><p><strong>Fixed 24&#8202;°C</strong>, a discrete-action <strong>CQL</strong> agent, <strong>CQL-HP</strong> tuned on high-price windows, and <strong>CQL-Router</strong>, a hand-written safety layer that sheds load when prices spike and recovers when zones get warm.</p></div>
+        <div class="row"><p class="meta">Evaluation</p><p>Stage 3 ran 23 episodes (all summer and high-price test days plus a hot day, one winter and one shoulder day), 18 of them with cooling active.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="res-h">
+    <div class="wrap">
+      <h2 id="res-h">Closed-loop results</h2>
+      <p class="note">Fixed 24&#8202;°C had the lowest comfort penalty outright in 12 of 18 episodes and tied at zero in 5 more. It was never worst on its own.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <caption>18 cooling-active episodes, closed-loop EnergyPlus.</caption>
+          <thead><tr><th>Policy</th><th>Mean cost</th><th>Median cost</th><th>Mean comfort penalty</th><th>Median comfort penalty</th></tr></thead>
+          <tbody>
+            <tr class="win"><td>Fixed 24&#8202;°C</td><td>$84.68</td><td>$76.53</td><td>2.25</td><td>0.00</td></tr>
+            <tr><td>CQL</td><td>$86.15</td><td>$77.23</td><td>14.26</td><td>5.17</td></tr>
+            <tr><td>CQL-Router</td><td>$90.45</td><td>$77.56</td><td>77.15</td><td>39.06</td></tr>
+            <tr><td>CQL-HP</td><td>$98.79</td><td>$90.21</td><td>48.91</td><td>11.47</td></tr>
+            <tr class="after"><td>CQL-Router, after fix</td><td>$85.67</td><td>n/a</td><td>12.95</td><td>n/a</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="chart">
+        <div class="chart-scroll">
+<svg class="strip" viewBox="0 0 780 288" role="img" aria-labelledby="strip-t strip-d">
+<title id="strip-t">Realized comfort penalty per episode, closed loop</title>
+<desc id="strip-d">One dot per cooling-active episode for each of four policies, on a square-root scale. Fixed 24 °C stays near zero on every episode; CQL-HP and the router have a few very high episodes.</desc>
+<line x1="200.0" x2="200.0" y1="10" y2="248" class="grid"/>
+<text x="200.0" y="266" class="tick" text-anchor="middle">0</text>
+<line x1="272.3" x2="272.3" y1="10" y2="248" class="grid"/>
+<text x="272.3" y="266" class="tick" text-anchor="middle">10</text>
+<line x1="361.7" x2="361.7" y1="10" y2="248" class="grid"/>
+<text x="361.7" y="266" class="tick" text-anchor="middle">50</text>
+<line x1="428.6" x2="428.6" y1="10" y2="248" class="grid"/>
+<text x="428.6" y="266" class="tick" text-anchor="middle">100</text>
+<line x1="561.5" x2="561.5" y1="10" y2="248" class="grid"/>
+<text x="561.5" y="266" class="tick" text-anchor="middle">250</text>
+<line x1="711.2" x2="711.2" y1="10" y2="248" class="grid"/>
+<text x="711.2" y="266" class="tick" text-anchor="middle">500</text>
+<text x="0" y="50.0" class="plab win">Fixed 24 °C</text>
+<line x1="200" x2="760" y1="45.0" y2="45.0" class="lane"/>
+<circle cx="200.0" cy="38.6" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="45.0" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="51.4" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="41.8" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="48.2" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="38.6" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="45.0" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="51.4" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="41.8" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="48.2" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="38.6" r="4.5" class="dot win"/>
+<circle cx="200.0" cy="45.0" r="4.5" class="dot win"/>
+<circle cx="224.0" cy="51.4" r="4.5" class="dot win"/>
+<circle cx="224.0" cy="41.8" r="4.5" class="dot win"/>
+<circle cx="233.9" cy="48.2" r="4.5" class="dot win"/>
+<circle cx="240.9" cy="38.6" r="4.5" class="dot win"/>
+<circle cx="245.7" cy="45.0" r="4.5" class="dot win"/>
+<circle cx="322.9" cy="51.4" r="4.5" class="dot win"/>
+<line x1="200.0" x2="200.0" y1="30.0" y2="60.0" class="med"/>
+<text x="0" y="108.0" class="plab">CQL</text>
+<line x1="200" x2="760" y1="103.0" y2="103.0" class="lane"/>
+<circle cx="200.0" cy="96.6" r="4.5" class="dot"/>
+<circle cx="200.0" cy="103.0" r="4.5" class="dot"/>
+<circle cx="200.0" cy="109.4" r="4.5" class="dot"/>
+<circle cx="200.0" cy="99.8" r="4.5" class="dot"/>
+<circle cx="210.2" cy="106.2" r="4.5" class="dot"/>
+<circle cx="214.5" cy="96.6" r="4.5" class="dot"/>
+<circle cx="232.3" cy="103.0" r="4.5" class="dot"/>
+<circle cx="237.6" cy="109.4" r="4.5" class="dot"/>
+<circle cx="251.6" cy="99.8" r="4.5" class="dot"/>
+<circle cx="252.1" cy="106.2" r="4.5" class="dot"/>
+<circle cx="252.6" cy="96.6" r="4.5" class="dot"/>
+<circle cx="252.6" cy="103.0" r="4.5" class="dot"/>
+<circle cx="276.9" cy="109.4" r="4.5" class="dot"/>
+<circle cx="293.1" cy="99.8" r="4.5" class="dot"/>
+<circle cx="327.1" cy="106.2" r="4.5" class="dot"/>
+<circle cx="352.3" cy="96.6" r="4.5" class="dot"/>
+<circle cx="381.2" cy="103.0" r="4.5" class="dot"/>
+<circle cx="383.6" cy="109.4" r="4.5" class="dot"/>
+<line x1="251.9" x2="251.9" y1="88.0" y2="118.0" class="med"/>
+<text x="0" y="166.0" class="plab">CQL-HP</text>
+<line x1="200" x2="760" y1="161.0" y2="161.0" class="lane"/>
+<circle cx="200.0" cy="154.6" r="4.5" class="dot"/>
+<circle cx="200.0" cy="161.0" r="4.5" class="dot"/>
+<circle cx="200.0" cy="167.4" r="4.5" class="dot"/>
+<circle cx="200.0" cy="157.8" r="4.5" class="dot"/>
+<circle cx="200.0" cy="164.2" r="4.5" class="dot"/>
+<circle cx="250.6" cy="154.6" r="4.5" class="dot"/>
+<circle cx="265.9" cy="161.0" r="4.5" class="dot"/>
+<circle cx="270.5" cy="167.4" r="4.5" class="dot"/>
+<circle cx="275.1" cy="157.8" r="4.5" class="dot"/>
+<circle cx="279.9" cy="164.2" r="4.5" class="dot"/>
+<circle cx="294.5" cy="154.6" r="4.5" class="dot"/>
+<circle cx="308.0" cy="161.0" r="4.5" class="dot"/>
+<circle cx="350.3" cy="167.4" r="4.5" class="dot"/>
+<circle cx="360.7" cy="157.8" r="4.5" class="dot"/>
+<circle cx="384.9" cy="164.2" r="4.5" class="dot"/>
+<circle cx="413.2" cy="154.6" r="4.5" class="dot"/>
+<circle cx="559.2" cy="161.0" r="4.5" class="dot"/>
+<circle cx="598.4" cy="167.4" r="4.5" class="dot"/>
+<line x1="277.5" x2="277.5" y1="146.0" y2="176.0" class="med"/>
+<text x="0" y="224.0" class="plab">CQL-Router (before fix)</text>
+<line x1="200" x2="760" y1="219.0" y2="219.0" class="lane"/>
+<circle cx="200.0" cy="212.6" r="4.5" class="dot"/>
+<circle cx="200.0" cy="219.0" r="4.5" class="dot"/>
+<circle cx="210.2" cy="225.4" r="4.5" class="dot"/>
+<circle cx="212.5" cy="215.8" r="4.5" class="dot"/>
+<circle cx="214.5" cy="222.2" r="4.5" class="dot"/>
+<circle cx="237.6" cy="212.6" r="4.5" class="dot"/>
+<circle cx="266.7" cy="219.0" r="4.5" class="dot"/>
+<circle cx="308.2" cy="225.4" r="4.5" class="dot"/>
+<circle cx="327.1" cy="215.8" r="4.5" class="dot"/>
+<circle cx="357.1" cy="222.2" r="4.5" class="dot"/>
+<circle cx="357.4" cy="212.6" r="4.5" class="dot"/>
+<circle cx="371.4" cy="219.0" r="4.5" class="dot"/>
+<circle cx="383.6" cy="225.4" r="4.5" class="dot"/>
+<circle cx="411.8" cy="215.8" r="4.5" class="dot"/>
+<circle cx="416.6" cy="222.2" r="4.5" class="dot"/>
+<circle cx="450.0" cy="212.6" r="4.5" class="dot"/>
+<circle cx="567.4" cy="219.0" r="4.5" class="dot"/>
+<circle cx="738.4" cy="225.4" r="4.5" class="dot"/>
+<line x1="342.9" x2="342.9" y1="204.0" y2="234.0" class="med"/>
+<text x="760" y="286" class="tick" text-anchor="end">Comfort penalty per episode, square-root scale. Vertical tick marks the median.</text>
+</svg>
+        </div>
+        <figcaption>Every cooling-active episode, one dot each. The learned policies are not uniformly worse: a handful of bad days drag their averages up, which points at a specific mechanism rather than general weakness.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="why-h">
+    <div class="wrap">
+      <div class="prose">
+        <h2 id="why-h">Two different ways to fail</h2>
+        <h3>The router: right forecast, wrong control logic</h3>
+        <p>CQL-Router's open-loop comfort prediction matched closed-loop reality on <strong>16 of 18 episodes</strong>, yet it had the worst realized comfort in 9 of them. The problem was the recovery branch, written as the minimum of CQL-HP's action and 24&#8202;°C. CQL-HP usually wants something colder than 24, so the cap never engaged and every recovery swung the setpoint from 26 down to about 22&#8202;°C.</p>
+        <p>Pinning the branch at its configured value and re-running the validation unchanged cut the router's comfort penalty <strong>6×</strong>, from 77.15 to 12.95, level with plain CQL. The headline held: Fixed 24&#8202;°C was still best outright in 10 of 18 episodes and still never worst.</p>
+        <h3>CQL-HP: the forecast itself was wrong</h3>
+        <p>CQL-HP under-predicted its own realized comfort penalty on <strong>12 of 18 episodes</strong>, by 67.4 penalty units on average when it missed. On the illustrative hot day it predicted almost zero and realized 303.7.</p>
+        <h3>A shared trigger</h3>
+        <p>Both failures trace to ties in the discrete argmax that occasionally flip the chosen setpoint. On the hot day, the learned policies diverged from their open-loop actions on only 6 of 288 steps, but each divergence opened a zone-temperature gap of up to 2.25&#8202;°C that persisted for tens of steps.</p>
+      </div>
+
+      <div class="figs">
+        <figure class="fig">
+          <img src="../../media/offline-rl-hvac/router-trace.png" alt="Three stacked plots over one hot day: commanded setpoint, mean zone temperature, and real-time price. The router's setpoint jumps between 23 and 26 °C, then holds 26 °C from hours 7 to 16 while zone temperature climbs to nearly 26 °C." loading="lazy">
+          <figcaption>Pre-fix router on the hot day. The shed branch holds 26&#8202;°C from hour 7 to 16 and the zone climbs to nearly 26&#8202;°C.</figcaption>
+        </figure>
+        <figure class="fig">
+          <img src="../../media/offline-rl-hvac/divergence.png" alt="Two plots over 288 five-minute steps: the difference between open-loop and closed-loop actions, which spikes on a few steps, and the resulting difference in mean zone temperature, which persists after each spike." loading="lazy">
+          <figcaption>Open-loop against closed-loop action (top) and zone temperature (bottom). A few flipped actions produce long-lived temperature gaps.</figcaption>
+        </figure>
+      </div>
+
+      <div class="prose" style="margin-top:40px">
+        <p>The contribution isn't an algorithm. It's that open-loop evaluation, the usual way these controllers get validated, can certify a policy that raises both cost and comfort violations once deployed. Closed-loop simulator validation should be the minimum bar before claiming a demand-response benefit.</p>
+        <p class="stack"><span>PyTorch</span><span>Conservative Q-Learning</span><span>Offline evaluation</span><span>EnergyPlus</span><span>NYISO market data</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="status-h">
+    <div class="wrap">
+      <h2 id="status-h">Where it stands</h2>
+      <p class="note">Last updated September 2026.</p>
+      <div class="status">
+        <div class="row done">
+          <p class="meta">Done</p>
+          <ul>
+            <li>Offline dataset, four policies, and the three-stage evaluation pipeline</li>
+            <li>Router recovery defect found, fixed, and re-validated</li>
+            <li>Robustness checks: ranking stable across comfort weights 1 to 20</li>
+            <li>Paper submitted</li>
+          </ul>
+        </div>
+        <div class="row now">
+          <p class="meta">In review</p>
+          <ul>
+            <li>Tackling Climate Change with ML workshop at NeurIPS 2026</li>
+          </ul>
+        </div>
+        <div class="row next">
+          <p class="meta">Next</p>
+          <ul>
+            <li>Continuous-action offline RL (TD3+BC, IQL) through the same three stages, to test whether removing the argmax tie removes the divergence</li>
+            <li>A sequence model in place of the one-step dynamics model at stage one</li>
+            <li>A closed-loop harness where weather, occupancy and schedules also respond, not only zone temperature</li>
+          </ul>
+        </div>
+        <div class="row">
+          <p class="meta">Code</p>
+          <p>The evaluation pipeline will be released with the paper after the review period.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="../../#work">Back to all work</a>
+    <a href="mailto:madhav18oct@gmail.com">madhav18oct@gmail.com</a>
+    <a href="https://www.linkedin.com/in/madhavkrishnamangalams/" target="_blank" rel="noopener">LinkedIn</a>
+  </div>
+</footer>
+
+</body>
+</html>

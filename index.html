@@ -225,6 +225,9 @@
   .work-text p strong{color:var(--ink);font-weight:500}
   .work-stack{font-size:14px;color:var(--ink-faint);margin:18px 0 0}
   .work-stack span{display:inline-block;border:1px solid var(--rule);border-radius:2px;padding:3px 9px;margin:0 6px 6px 0}
+  .work-more{font-size:15px;margin:24px 0 0}
+  .work-more a{text-decoration:none;color:var(--ember);border-bottom:1px solid var(--rule-strong);padding-bottom:2px}
+  .work-more a:hover{border-bottom-color:var(--ember)}
   @media (max-width:720px){
     .work-btn{grid-template-columns:1fr 28px}
     .work-meta{grid-column:1/-1;padding-top:0;margin-bottom:8px}
@@ -376,6 +379,7 @@
               <p>Open-loop, the price-tuned CQL variant looked like a clear win, exactly the result a project would stop and report. Close the loop and it inverts. A trivial fixed 24&#8202;°C setpoint had the lowest mean realized cost <em>and</em> the lowest comfort penalty across the 18 cooling-active episodes, and was never the worst policy on either.</p>
               <p>The router's failure turned out to be control logic rather than forecasting: its open-loop comfort prediction matched reality on 16 of 18 episodes, but the shed/recover rule compounded once fed back through real dynamics. I traced it to a one-line defect in the recovery branch, pinned it, and re-ran the validation unchanged. Comfort penalty dropped <strong>6×</strong>. The headline result held anyway. The fixed setpoint still won.</p>
               <p>The contribution isn't an algorithm. It's that open-loop evaluation, which is how most of this work gets validated, can certify a policy that makes things worse when deployed.</p>
+              <p class="work-more"><a href="projects/offline-rl-hvac/">Read the full write-up, with charts and results tables →</a></p>
               <p class="work-stack"><span>PyTorch</span><span>Conservative Q-Learning</span><span>Offline evaluation</span><span>EnergyPlus</span><span>NYISO market data</span></p>
             </div>
           </div>
