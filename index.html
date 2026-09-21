@@ -401,6 +401,7 @@
               <p>An open-source anomaly detection and time-to-failure system for fleet-scale battery degradation, built on the Severson fast-charging dataset. Currently underway: the data foundation is complete and the modeling layer is in progress.</p>
               <p>So far: an ingestion pipeline turning BEEP-structured cell records into a clean modeling set of <strong>139 cells and roughly 114,000 cell-cycle rows</strong>, queryable through DuckDB. Validation surfaced two things worth knowing. Near-zero internal-resistance readings cluster at early cycles and end of life. Physically impossible, so sensor artifacts, kept and flagged rather than dropped. And only 43 of 140 cells ever cross the 80% capacity failure threshold.</p>
               <p>That second one is the actual problem. Roughly 70% of the fleet is right-censored, which means naive time-to-failure regression would train mostly on cells that never failed. The modeling approach is a discrete-time hazard model in person-period format, a next-step residual model for day-to-day anomaly flagging, and conformal prediction wrapping both for calibrated uncertainty.</p>
+              <p class="work-more"><a href="projects/battery-fleet/">Read the full write-up, with the capacity-fade chart →</a></p>
               <p class="work-stack"><span>Discrete-time hazard modeling</span><span>Survival analysis</span><span>Conformal prediction</span><span>DuckDB</span><span>Python</span></p>
             </div>
           </div>
