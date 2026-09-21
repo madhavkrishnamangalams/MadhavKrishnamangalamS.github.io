@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://madhavkrishnamangalams.github.io/sitemap.xml
