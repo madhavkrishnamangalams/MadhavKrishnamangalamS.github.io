@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How fast heat soaks into the ground | Madhav Krishnamangalam S</title>
+<meta name="description" content="Soil thermal properties measured from 2.7 million readings across 194 Indian weather stations: sensor cleaning, a heat conduction fit, a model tested on stations it never saw, and line-by-line sky emissivity from radiosondes.">
+<meta name="theme-color" content="#061019">
+<link rel="icon" href="../../media/favicon.png">
+<link rel="canonical" href="https://madhavkrishnamangalams.github.io/projects/soil-heat/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How fast heat soaks into the ground">
+<meta property="og:description" content="Soil thermal properties measured from 194 weather stations, and what the sensors got wrong.">
+<meta property="og:url" content="https://madhavkrishnamangalams.github.io/projects/soil-heat/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#061019;--bg-raised:#0A1826;
+    --ink:#E7EDF3;--ink-dim:#94A5B5;--ink-faint:#5D7085;
+    --rule:rgba(231,237,243,.13);--rule-strong:rgba(231,237,243,.26);
+    --ember:#E8A33D;--plum:#B8566A;
+    --display:"Archivo Expanded","Archivo",system-ui,sans-serif;
+    --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --pad:clamp(20px,5vw,72px);
+    --meta-col:minmax(96px,140px);
+    --gap:clamp(12px,3vw,40px);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 var(--pad)}
+
+  .topbar{display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding-top:26px;flex-wrap:wrap}
+  .mark{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.01em;text-decoration:none}
+  .topnav{display:flex;gap:22px;font-size:14.5px;color:var(--ink-dim)}
+  .topnav a{text-decoration:none;padding-bottom:2px;border-bottom:1px solid transparent}
+  .topnav a:hover{color:var(--ink);border-bottom-color:var(--ember)}
+
+  .row{display:grid;grid-template-columns:var(--meta-col) 1fr;gap:var(--gap)}
+  .meta{font-size:13.5px;color:var(--ink-faint);line-height:1.4;padding-top:4px;font-variant-numeric:tabular-nums;margin:0}
+  .meta .hi{color:var(--ember)}
+
+  .head{padding:clamp(56px,10vw,120px) 0 clamp(40px,6vw,72px)}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,4.6vw,58px);line-height:1.02;letter-spacing:-.02em;margin:0 0 24px;max-width:20ch}
+  .lede{font-size:clamp(17px,1.5vw,20px);line-height:1.5;max-width:54ch;margin:0}
+
+  section{padding:clamp(48px,7vw,96px) 0;border-top:1px solid var(--rule)}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(22px,2.6vw,32px);line-height:1.1;letter-spacing:-.015em;margin:0 0 10px}
+  .note{color:var(--ink-dim);max-width:60ch;margin:0 0 36px;font-size:16.5px}
+  .prose{max-width:62ch}
+  .prose p{margin:0 0 14px;font-size:16.5px;color:var(--ink-dim)}
+  .prose strong{color:var(--ink);font-weight:500}
+  .prose h3{font-family:var(--display);font-weight:600;font-size:18px;margin:30px 0 8px;color:var(--ink)}
+
+  /* ---------- setup list ---------- */
+  .spec{border-top:1px solid var(--rule)}
+  .spec .row{padding:18px 0;border-bottom:1px solid var(--rule)}
+  .spec p:not(.meta){margin:0;font-size:16px;color:var(--ink-dim);max-width:64ch}
+  .spec strong{color:var(--ink);font-weight:500}
+
+  /* ---------- results table ---------- */
+  .tbl-wrap{overflow-x:auto;margin:0 0 40px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums;font-size:15.5px}
+  caption{text-align:left;font-size:13.5px;color:var(--ink-faint);padding-bottom:12px}
+  th,td{padding:11px 16px 11px 0;text-align:right;border-bottom:1px solid var(--rule)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-weight:500;font-size:13.5px;color:var(--ink-faint);border-bottom:1px solid var(--rule-strong)}
+  tbody td{color:var(--ink-dim)}
+  tr.win td{color:var(--ember)}
+  tr.after td{color:var(--ink-faint);font-style:italic}
+
+  /* ---------- strip chart ---------- */
+  .chart{margin:0}
+  .chart-scroll{overflow-x:auto}
+  .strip{width:100%;min-width:560px;height:auto;display:block}
+  .strip .grid{stroke:var(--rule);stroke-width:1}
+  .strip .lane{stroke:var(--rule);stroke-width:1}
+  .strip .tick{fill:var(--ink-faint);font:12px var(--body)}
+  .strip .plab{fill:var(--ink-dim);font:14px var(--body)}
+  .strip .plab.win{fill:var(--ember)}
+  .strip .dot{fill:var(--ink-dim);fill-opacity:.55}
+  .strip .dot.win{fill:var(--ember);fill-opacity:.8}
+  .strip .med{stroke:var(--ink);stroke-width:2}
+  .chart figcaption,.fig figcaption{font-size:13.5px;color:var(--ink-faint);margin-top:12px;line-height:1.5;max-width:64ch}
+
+  /* ---------- paper figures (white background plots) ---------- */
+  .figs{display:grid;grid-template-columns:1fr 1fr;gap:28px 22px;margin-top:32px}
+  .fig{margin:0}
+  .fig img{width:100%;height:auto;display:block;border-radius:2px;background:#fff;padding:10px}
+  @media (max-width:760px){.figs{grid-template-columns:1fr}}
+
+  /* ---------- status ---------- */
+  .status .row{padding:22px 0;border-top:1px solid var(--rule)}
+  .status .row:last-child{border-bottom:1px solid var(--rule)}
+  .status ul{margin:0;padding:0;list-style:none;max-width:64ch}
+  .status li{position:relative;padding:4px 0 4px 20px;font-size:16px;color:var(--ink-dim)}
+  .status li::before{content:"";position:absolute;left:0;top:13px;width:8px;height:8px;border-radius:50%;border:1px solid var(--ink-faint)}
+  .status .done li::before{background:var(--ink-dim);border-color:var(--ink-dim)}
+  .status .now li::before{border-color:var(--ember);background:linear-gradient(to right,var(--ember) 50%,transparent 50%)}
+  .status p:not(.meta){margin:0;font-size:16px;color:var(--ink-dim);max-width:64ch}
+
+  .stack{font-size:14px;color:var(--ink-faint);margin:26px 0 0}
+  .stack span{display:inline-block;border:1px solid var(--rule);border-radius:2px;padding:3px 9px;margin:0 6px 6px 0}
+
+  footer{border-top:1px solid var(--rule);padding:clamp(40px,6vw,72px) 0}
+  .foot{display:flex;flex-wrap:wrap;gap:14px 40px;font-size:16px}
+  .foot a{text-decoration:none;border-bottom:1px solid var(--rule-strong);padding-bottom:3px}
+  .foot a:hover{color:var(--ember);border-bottom-color:var(--ember)}
+
+  @media (max-width:720px){
+    .row{grid-template-columns:1fr;gap:6px}
+    .meta{padding-top:0}
+  }
+
+  .fig-note{font-size:13.5px;color:var(--ink-faint);margin:12px 0 0;max-width:64ch}
+  /* ---------- key numbers ---------- */
+  .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:0 clamp(16px,3vw,40px);margin:40px 0 0}
+  .num{border-top:1px solid var(--rule-strong);padding-top:16px}
+  .num b{display:block;font-family:var(--display);font-weight:600;font-size:clamp(26px,3.2vw,40px);line-height:1.05;color:var(--ember);margin-bottom:8px;font-variant-numeric:tabular-nums}
+  .num span{font-size:15px;color:var(--ink-dim);display:block;max-width:30ch}
+  @media (max-width:720px){.nums{grid-template-columns:1fr;gap:24px}}
+
+  /* ---------- decay chart ---------- */
+  .decay{width:100%;min-width:560px;height:auto;display:block}
+  .decay .grid{stroke:var(--rule);stroke-width:1}
+  .decay .tick{fill:var(--ink-faint);font:12.5px var(--body)}
+  .decay .axlab{fill:var(--ink-faint);font:13px var(--body)}
+  .decay .st{fill:none;stroke:var(--ink-dim);stroke-opacity:.35;stroke-width:1.2}
+  .decay .pt{fill:var(--ink-dim);fill-opacity:.6}
+  .decay .theory{fill:none;stroke:var(--ember);stroke-width:2.5}
+  .decay .tlab{fill:var(--ember);font:14px var(--body)}
+  .spectrum{width:100%;min-width:560px;height:auto;display:block}
+  .spectrum .grid{stroke:var(--rule);stroke-width:1}
+  .spectrum .tick{fill:var(--ink-faint);font:12.5px var(--body)}
+  .spectrum .axlab{fill:var(--ink-faint);font:13px var(--body)}
+  .spectrum .win{fill:var(--ink);fill-opacity:.04}
+  .spectrum .winlab{fill:var(--ink-faint);font:12.5px var(--body)}
+  .spectrum .bb{fill:none;stroke:var(--ink-faint);stroke-width:1.2;stroke-dasharray:3 4}
+  .spectrum .dry{fill:none;stroke:var(--ink-dim);stroke-width:1.3}
+  .spectrum .hum{fill:none;stroke:var(--ember);stroke-width:1.6}
+  .spectrum .lab-hum{fill:var(--ember);font:14px var(--body)}
+  .spectrum .lab-dry{fill:var(--ink-dim);font:14px var(--body)}
+  .spectrum .lab-bb{fill:var(--ink-faint);font:13px var(--body)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="topbar">
+    <a class="mark" href="../../">Madhav Krishnamangalam S</a>
+    <nav class="topnav" aria-label="Site">
+      <a href="../../#work">All work</a>
+      <a href="../../MadhavKrishnamangalamS_Resume.pdf">CV</a>
+      <a href="../../#contact">Contact</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="row head">
+      <p class="meta">2023, revisited 2026<br>Columbia University<br><span class="hi">MS research, Prof. Arvind Narayanaswamy</span></p>
+      <div>
+        <h1>How fast heat soaks into the ground</h1>
+        <p class="lede">In 2023 I scraped 2.7 million readings from India's automatic weather stations. In 2026 I went back, cleaned out the broken sensors, and used the daily temperature wave to measure the soil's thermal properties at each station. Then I recomputed, line by line, how much infrared heat the sky sends back down.</p>
+      </div>
+    </div>
+  </div>
+
+  <section aria-labelledby="phys-h">
+    <div class="wrap">
+      <h2 id="phys-h">The ground damps the daily swing, much as conduction predicts</h2>
+      <p class="note">Sunlight heats the surface every day and the soil passes that wave downward. Heat conduction says the swing should shrink exponentially with depth and arrive later the deeper you go. Fitting both gives two independent estimates of the same property, the soil's thermal diffusivity.</p>
+      <div class="chart-scroll">
+<svg class="decay" viewBox="0 0 760 420" role="img" aria-labelledby="dc-t dc-d">
+<title id="dc-t">Daily temperature swing against depth, 61 stations</title>
+<desc id="dc-d">Each faint line is one station, with the daily swing at each depth divided by the swing at 10 cm, on a log scale. The lines fall along an exponential decay with a damping depth of about 17 cm, the curve predicted by heat conduction.</desc>
+<line class="grid" x1="64" x2="736" y1="295.3" y2="295.3"/>
+<text class="tick" x="54" y="299.3" text-anchor="end">1%</text>
+<line class="grid" x1="64" x2="736" y1="164.0" y2="164.0"/>
+<text class="tick" x="54" y="168.0" text-anchor="end">10%</text>
+<line class="grid" x1="64" x2="736" y1="32.7" y2="32.7"/>
+<text class="tick" x="54" y="36.7" text-anchor="end">100%</text>
+<line class="grid" x1="97.6" x2="97.6" y1="20" y2="364"/>
+<text class="tick" x="97.6" y="384" text-anchor="middle">10 cm</text>
+<line class="grid" x1="232.0" x2="232.0" y1="20" y2="364"/>
+<text class="tick" x="232.0" y="384" text-anchor="middle">30 cm</text>
+<line class="grid" x1="500.8" x2="500.8" y1="20" y2="364"/>
+<text class="tick" x="500.8" y="384" text-anchor="middle">70 cm</text>
+<line class="grid" x1="702.4" x2="702.4" y1="20" y2="364"/>
+<text class="tick" x="702.4" y="384" text-anchor="middle">100 cm</text>
+<text class="axlab" x="400.0" y="412" text-anchor="middle">Depth below surface</text>
+<text class="axlab" x="14" y="192.0" text-anchor="middle" transform="rotate(-90 14 192.0)">Daily swing, relative to 10 cm</text>
+<path class="st" d="M97.6,32.7 L232.0,74.4"/>
+<circle class="pt" cx="232.0" cy="74.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,132.1"/>
+<circle class="pt" cx="232.0" cy="132.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,76.3"/>
+<circle class="pt" cx="232.0" cy="76.3" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,130.1"/>
+<circle class="pt" cx="232.0" cy="130.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,73.8"/>
+<circle class="pt" cx="232.0" cy="73.8" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,105.6"/>
+<circle class="pt" cx="232.0" cy="105.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,135.6"/>
+<circle class="pt" cx="232.0" cy="135.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,125.3"/>
+<circle class="pt" cx="232.0" cy="125.3" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,92.1"/>
+<circle class="pt" cx="232.0" cy="92.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,125.4"/>
+<circle class="pt" cx="232.0" cy="125.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,76.3"/>
+<circle class="pt" cx="232.0" cy="76.3" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,105.5"/>
+<circle class="pt" cx="232.0" cy="105.5" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,88.9"/>
+<circle class="pt" cx="232.0" cy="88.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,67.0"/>
+<circle class="pt" cx="232.0" cy="67.0" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,101.9"/>
+<circle class="pt" cx="232.0" cy="101.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,115.4"/>
+<circle class="pt" cx="232.0" cy="115.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,85.5"/>
+<circle class="pt" cx="232.0" cy="85.5" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,100.1"/>
+<circle class="pt" cx="232.0" cy="100.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,155.6"/>
+<circle class="pt" cx="232.0" cy="155.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,109.9"/>
+<circle class="pt" cx="232.0" cy="109.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,95.7"/>
+<circle class="pt" cx="232.0" cy="95.7" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,100.4"/>
+<circle class="pt" cx="232.0" cy="100.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,89.6"/>
+<circle class="pt" cx="232.0" cy="89.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,68.3 L500.8,104.5 L702.4,93.5"/>
+<circle class="pt" cx="232.0" cy="68.3" r="3"/>
+<circle class="pt" cx="500.8" cy="104.5" r="3"/>
+<circle class="pt" cx="702.4" cy="93.5" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,96.1"/>
+<circle class="pt" cx="232.0" cy="96.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,138.0"/>
+<circle class="pt" cx="232.0" cy="138.0" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,124.7"/>
+<circle class="pt" cx="232.0" cy="124.7" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,74.0"/>
+<circle class="pt" cx="232.0" cy="74.0" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,90.9"/>
+<circle class="pt" cx="232.0" cy="90.9" r="3"/>
+<path class="st" d="M97.6,32.7 L500.8,125.6"/>
+<circle class="pt" cx="500.8" cy="125.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,110.4"/>
+<circle class="pt" cx="232.0" cy="110.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,90.9"/>
+<circle class="pt" cx="232.0" cy="90.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,107.4 L702.4,116.9"/>
+<circle class="pt" cx="232.0" cy="107.4" r="3"/>
+<circle class="pt" cx="702.4" cy="116.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,156.7"/>
+<circle class="pt" cx="232.0" cy="156.7" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,113.2"/>
+<circle class="pt" cx="232.0" cy="113.2" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,148.9"/>
+<circle class="pt" cx="232.0" cy="148.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,89.0"/>
+<circle class="pt" cx="232.0" cy="89.0" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,117.1"/>
+<circle class="pt" cx="232.0" cy="117.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,112.5"/>
+<circle class="pt" cx="232.0" cy="112.5" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,88.1"/>
+<circle class="pt" cx="232.0" cy="88.1" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,105.6"/>
+<circle class="pt" cx="232.0" cy="105.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,128.5"/>
+<circle class="pt" cx="232.0" cy="128.5" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,102.8"/>
+<circle class="pt" cx="232.0" cy="102.8" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,72.6"/>
+<circle class="pt" cx="232.0" cy="72.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,130.2"/>
+<circle class="pt" cx="232.0" cy="130.2" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,84.9"/>
+<circle class="pt" cx="232.0" cy="84.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,112.2"/>
+<circle class="pt" cx="232.0" cy="112.2" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,101.2 L500.8,170.4"/>
+<circle class="pt" cx="232.0" cy="101.2" r="3"/>
+<circle class="pt" cx="500.8" cy="170.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,104.6"/>
+<circle class="pt" cx="232.0" cy="104.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,92.6"/>
+<circle class="pt" cx="232.0" cy="92.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,106.8"/>
+<circle class="pt" cx="232.0" cy="106.8" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,94.8"/>
+<circle class="pt" cx="232.0" cy="94.8" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,128.6"/>
+<circle class="pt" cx="232.0" cy="128.6" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,113.0 L500.8,215.3"/>
+<circle class="pt" cx="232.0" cy="113.0" r="3"/>
+<circle class="pt" cx="500.8" cy="215.3" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,95.4"/>
+<circle class="pt" cx="232.0" cy="95.4" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,87.6 L500.8,134.9"/>
+<circle class="pt" cx="232.0" cy="87.6" r="3"/>
+<circle class="pt" cx="500.8" cy="134.9" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,93.7"/>
+<circle class="pt" cx="232.0" cy="93.7" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,133.8"/>
+<circle class="pt" cx="232.0" cy="133.8" r="3"/>
+<path class="st" d="M97.6,32.7 L232.0,146.6"/>
+<circle class="pt" cx="232.0" cy="146.6" r="3"/>
+<path class="theory" d="M97.6,32.7 L107.9,37.9 L118.1,43.0 L128.4,48.2 L138.6,53.4 L148.9,58.5 L159.1,63.7 L169.4,68.8 L179.6,74.0 L189.9,79.2 L200.1,84.3 L210.4,89.5 L220.6,94.6 L230.9,99.8 L241.1,105.0 L251.4,110.1 L261.6,115.3 L271.9,120.4 L282.1,125.6 L292.4,130.8 L302.6,135.9 L312.9,141.1 L323.1,146.3 L333.4,151.4 L343.6,156.6 L353.9,161.7 L364.1,166.9 L374.4,172.1 L384.6,177.2 L394.9,182.4 L405.1,187.5 L415.4,192.7 L425.6,197.9 L435.9,203.0 L446.1,208.2 L456.4,213.3 L466.6,218.5 L476.9,223.7 L487.1,228.8 L497.4,234.0 L507.6,239.1 L517.9,244.3 L528.1,249.5 L538.4,254.6 L548.6,259.8 L558.9,264.9 L569.1,270.1 L579.4,275.3 L589.6,280.4 L599.9,285.6 L610.1,290.7 L620.4,295.9 L630.6,301.1 L640.9,306.2 L651.1,311.4 L661.4,316.5 L671.6,321.7 L681.9,326.9 L692.1,332.0 L702.4,337.2"/>
+<text class="tlab" x="441.0" y="238.6" text-anchor="end">Conduction, damping depth 17 cm</text>
+</svg>
+      </div>
+      <p class="fig-note">59 stations where the two estimates agree within 1.5×. Each grey line is one station; the orange curve is the conduction model at their median damping depth. Below 30 cm the swing approaches the sensors' 0.1&#8202;°C resolution, so the few deep points sit above the curve. Two stations whose swing grew with depth, a sign of a faulty shallow sensor, are left out.</p>
+      <div class="nums">
+        <div class="num"><b>17 cm</b><span>median damping depth: every 17 cm down, the daily swing falls to about a third</span></div>
+        <div class="num"><b>4.6 h</b><span>median time for the daily peak to travel from 10 cm to 30 cm</span></div>
+        <div class="num"><b>1.0 × 10⁻⁶ m²/s</b><span>median thermal diffusivity, at the upper end of the usual range for moist soil</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="data-h">
+    <div class="wrap">
+      <h2 id="data-h">The data, and what was wrong with it</h2>
+      <p class="note">Field sensors fail quietly. Before any model, the job was finding the readings that could not be real.</p>
+      <div class="spec">
+        <div class="row"><p class="meta">Source</p><p>India Meteorological Department automatic weather stations, scraped state by state with Selenium: <strong>2.7 million readings from 900 stations</strong>, 29 September to 28 December 2023.</p></div>
+        <div class="row"><p class="meta">Soil</p><p><strong>194 stations</strong> also measure soil temperature at 10, 30, 70 and 100 cm, alongside air temperature, humidity, solar radiation and soil moisture.</p></div>
+        <div class="row"><p class="meta">Stuck sensors</p><p>A reading that repeats exactly for longer than that depth can plausibly stay flat: 6 hours at 10 cm, 12 at 30 cm, 48 at 70 and 100 cm. This removed 8% of hours at 10 cm and 11% at 30 cm.</p></div>
+        <div class="row"><p class="meta">Impossible heat</p><p>Soil that stays more than 12&#8202;°C hotter than the air above it, on average, all autumn. Nine stations failed this at 10 cm, some reporting soil averaging over 40&#8202;°C between October and December. They were dropped.</p></div>
+        <div class="row"><p class="meta">A lesson</p><p>My first cleaning rule used one threshold for every depth. Deep soil changes so slowly that flat stretches at 100 cm are normal, and the rule deleted three quarters of the deep readings. The diffusivity it produced was closer to rock than soil, which is how I caught it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="pred-h">
+    <div class="wrap">
+      <h2 id="pred-h">Predicting soil temperature at a station the model has never seen</h2>
+      <p class="note">Soil temperature at 10 cm, predicted from air temperature (current, lagged, and the 24-hour mean), solar radiation, humidity, soil moisture and time of day. Every score comes from stations held out entirely, five folds over 179 stations.</p>
+      <div class="tbl-wrap">
+        <table>
+          <caption>149,729 hourly readings after cleaning. Error is mean absolute error.</caption>
+          <thead><tr><th>Model</th><th>Error</th><th>R²</th></tr></thead>
+          <tbody>
+            <tr><td>Air temperature only, linear</td><td>4.0&#8202;°C</td><td>0.20</td></tr>
+            <tr><td>All inputs, linear</td><td>3.3&#8202;°C</td><td>0.36</td></tr>
+            <tr class="win"><td>All inputs, gradient boosting</td><td>3.1&#8202;°C</td><td>0.47</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p>The strongest single input in the linear model is the <strong>average air temperature over the past 24 hours</strong>, well ahead of the current reading. The soil responds to the day, not the hour, which is the damping in the chart above showing up in a regression.</p>
+        <p>An R² of 0.47 on unseen stations also says what the weather inputs cannot explain. The rest is the site itself: soil type, moisture history, shading and sensor placement. That is what a next version would need.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <section aria-labelledby="sky-h">
+    <div class="wrap">
+      <h2 id="sky-h">The other half: heat coming down from the sky</h2>
+      <p class="note">The ground also gains heat from the atmosphere, which glows in the infrared. Building energy models estimate that glow with formulas based on surface humidity alone. I recomputed it from first principles for Chennai and tested those formulas against it.</p>
+      <div class="chart-scroll">
+<svg class="spectrum" viewBox="0 0 760 380" role="img" aria-labelledby="sp-t sp-d">
+<title id="sp-t">Downwelling longwave spectrum, driest and most humid sounding</title>
+<desc id="sp-d">Spectral downwelling radiation at the surface for the driest and most humid clear-sky soundings, with the blackbody curve at the humid day surface temperature. Both skies are nearly black below about 700 cm-1. Between 800 and 1250 cm-1 the dry sky is mostly transparent while the humid sky fills in much of the window.</desc>
+<rect class="win" x="254.3" y="20" width="127.5" height="304"/>
+<text class="winlab" x="318.1" y="38" text-anchor="middle">Atmospheric window</text>
+<line class="grid" x1="56" x2="736" y1="324.0" y2="324.0"/>
+<text class="tick" x="48" y="328.0" text-anchor="end">0.0</text>
+<line class="grid" x1="56" x2="736" y1="269.7" y2="269.7"/>
+<text class="tick" x="48" y="273.7" text-anchor="end">0.1</text>
+<line class="grid" x1="56" x2="736" y1="215.4" y2="215.4"/>
+<text class="tick" x="48" y="219.4" text-anchor="end">0.2</text>
+<line class="grid" x1="56" x2="736" y1="161.1" y2="161.1"/>
+<text class="tick" x="48" y="165.1" text-anchor="end">0.3</text>
+<line class="grid" x1="56" x2="736" y1="106.9" y2="106.9"/>
+<text class="tick" x="48" y="110.9" text-anchor="end">0.4</text>
+<line class="grid" x1="56" x2="736" y1="52.6" y2="52.6"/>
+<text class="tick" x="48" y="56.6" text-anchor="end">0.5</text>
+<text class="tick" x="169.3" y="344" text-anchor="middle">500</text>
+<text class="tick" x="311.0" y="344" text-anchor="middle">1000</text>
+<text class="tick" x="452.7" y="344" text-anchor="middle">1500</text>
+<text class="tick" x="594.3" y="344" text-anchor="middle">2000</text>
+<text class="tick" x="736.0" y="344" text-anchor="middle">2500</text>
+<text class="axlab" x="396.0" y="372" text-anchor="middle">Wavenumber (cm⁻¹)</text>
+<text class="axlab" x="14" y="172.0" text-anchor="middle" transform="rotate(-90 14 172.0)">W m⁻² per cm⁻¹</text>
+<path class="bb" d="M56.4,289.0 L57.6,286.6 L58.7,284.1 L59.8,281.5 L61.0,279.0 L62.1,276.3 L63.2,273.6 L64.4,270.9 L65.5,268.2 L66.6,265.4 L67.8,262.6 L68.9,259.7 L70.0,256.8 L71.2,253.9 L72.3,251.0 L73.4,248.1 L74.6,245.1 L75.7,242.1 L76.8,239.1 L78.0,236.1 L79.1,233.0 L80.2,230.0 L81.4,226.9 L82.5,223.9 L83.6,220.8 L84.8,217.7 L85.9,214.6 L87.0,211.6 L88.2,208.5 L89.3,205.4 L90.4,202.4 L91.6,199.3 L92.7,196.2 L93.8,193.2 L95.0,190.2 L96.1,187.1 L97.2,184.1 L98.4,181.1 L99.5,178.1 L100.6,175.2 L101.8,172.2 L102.9,169.3 L104.0,166.4 L105.2,163.5 L106.3,160.6 L107.4,157.8 L108.6,154.9 L109.7,152.1 L110.8,149.3 L112.0,146.6 L113.1,143.9 L114.2,141.2 L115.4,138.5 L116.5,135.8 L117.6,133.2 L118.8,130.6 L119.9,128.1 L121.0,125.6 L122.2,123.1 L123.3,120.6 L124.4,118.2 L125.6,115.8 L126.7,113.5 L127.8,111.1 L129.0,108.8 L130.1,106.6 L131.2,104.4 L132.4,102.2 L133.5,100.1 L134.6,98.0 L135.8,95.9 L136.9,93.9 L138.0,91.9 L139.2,89.9 L140.3,88.0 L141.4,86.1 L142.6,84.3 L143.7,82.5 L144.8,80.7 L146.0,79.0 L147.1,77.3 L148.2,75.7 L149.4,74.0 L150.5,72.5 L151.6,70.9 L152.8,69.5 L153.9,68.0 L155.0,66.6 L156.2,65.2 L157.3,63.9 L158.4,62.6 L159.6,61.4 L160.7,60.1 L161.8,59.0 L163.0,57.8 L164.1,56.7 L165.2,55.7 L166.4,54.7 L167.5,53.7 L168.6,52.7 L169.8,51.8 L170.9,51.0 L172.0,50.1 L173.2,49.3 L174.3,48.6 L175.4,47.9 L176.6,47.2 L177.7,46.5 L178.8,45.9 L180.0,45.4 L181.1,44.8 L182.2,44.3 L183.4,43.9 L184.5,43.4 L185.6,43.0 L186.8,42.7 L187.9,42.4 L189.0,42.1 L190.2,41.8 L191.3,41.6 L192.4,41.4 L193.6,41.2 L194.7,41.1 L195.8,41.0 L197.0,40.9 L198.1,40.9 L199.2,40.9 L200.4,40.9 L201.5,41.0 L202.6,41.1 L203.8,41.2 L204.9,41.3 L206.0,41.5 L207.2,41.7 L208.3,41.9 L209.4,42.2 L210.6,42.5 L211.7,42.8 L212.8,43.1 L214.0,43.5 L215.1,43.9 L216.2,44.3 L217.4,44.7 L218.5,45.2 L219.6,45.7 L220.8,46.2 L221.9,46.7 L223.0,47.3 L224.2,47.9 L225.3,48.5 L226.4,49.1 L227.6,49.8 L228.7,50.4 L229.8,51.1 L231.0,51.8 L232.1,52.6 L233.2,53.3 L234.4,54.1 L235.5,54.9 L236.6,55.7 L237.8,56.5 L238.9,57.3 L240.0,58.2 L241.2,59.1 L242.3,60.0 L243.4,60.9 L244.6,61.8 L245.7,62.7 L246.8,63.7 L248.0,64.6 L249.1,65.6 L250.2,66.6 L251.4,67.6 L252.5,68.7 L253.6,69.7 L254.8,70.7 L255.9,71.8 L257.0,72.9 L258.2,74.0 L259.3,75.1 L260.4,76.2 L261.6,77.3 L262.7,78.4 L263.8,79.6 L265.0,80.7 L266.1,81.9 L267.2,83.0 L268.4,84.2 L269.5,85.4 L270.6,86.6 L271.8,87.8 L272.9,89.0 L274.0,90.2 L275.2,91.4 L276.3,92.7 L277.4,93.9 L278.6,95.1 L279.7,96.4 L280.8,97.6 L282.0,98.9 L283.1,100.2 L284.2,101.4 L285.4,102.7 L286.5,104.0 L287.6,105.3 L288.8,106.6 L289.9,107.8 L291.0,109.1 L292.2,110.4 L293.3,111.7 L294.4,113.0 L295.6,114.3 L296.7,115.6 L297.8,116.9 L299.0,118.3 L300.1,119.6 L301.2,120.9 L302.4,122.2 L303.5,123.5 L304.6,124.8 L305.8,126.1 L306.9,127.5 L308.0,128.8 L309.2,130.1 L310.3,131.4 L311.4,132.7 L312.6,134.0 L313.7,135.4 L314.8,136.7 L316.0,138.0 L317.1,139.3 L318.2,140.6 L319.4,141.9 L320.5,143.2 L321.6,144.5 L322.8,145.8 L323.9,147.1 L325.0,148.4 L326.2,149.7 L327.3,151.0 L328.4,152.3 L329.6,153.6 L330.7,154.9 L331.8,156.2 L333.0,157.5 L334.1,158.7 L335.2,160.0 L336.4,161.3 L337.5,162.5 L338.6,163.8 L339.8,165.1 L340.9,166.3 L342.0,167.6 L343.2,168.8 L344.3,170.1 L345.4,171.3 L346.6,172.5 L347.7,173.8 L348.8,175.0 L350.0,176.2 L351.1,177.4 L352.2,178.6 L353.4,179.8 L354.5,181.0 L355.6,182.2 L356.8,183.4 L357.9,184.6 L359.0,185.8 L360.2,186.9 L361.3,188.1 L362.4,189.3 L363.6,190.4 L364.7,191.6 L365.8,192.7 L367.0,193.9 L368.1,195.0 L369.2,196.1 L370.4,197.3 L371.5,198.4 L372.6,199.5 L373.8,200.6 L374.9,201.7 L376.0,202.8 L377.2,203.9 L378.3,204.9 L379.4,206.0 L380.6,207.1 L381.7,208.1 L382.8,209.2 L384.0,210.3 L385.1,211.3 L386.2,212.3 L387.4,213.4 L388.5,214.4 L389.6,215.4 L390.8,216.4 L391.9,217.4 L393.0,218.4 L394.2,219.4 L395.3,220.4 L396.4,221.4 L397.6,222.3 L398.7,223.3 L399.8,224.3 L401.0,225.2 L402.1,226.2 L403.2,227.1 L404.4,228.0 L405.5,229.0 L406.6,229.9 L407.8,230.8 L408.9,231.7 L410.0,232.6 L411.2,233.5 L412.3,234.4 L413.4,235.3 L414.6,236.2 L415.7,237.0 L416.8,237.9 L418.0,238.8 L419.1,239.6 L420.2,240.4 L421.4,241.3 L422.5,242.1 L423.6,242.9 L424.8,243.8 L425.9,244.6 L427.0,245.4 L428.2,246.2 L429.3,247.0 L430.4,247.7 L431.6,248.5 L432.7,249.3 L433.8,250.1 L435.0,250.8 L436.1,251.6 L437.2,252.3 L438.4,253.1 L439.5,253.8 L440.6,254.5 L441.8,255.3 L442.9,256.0 L444.0,256.7 L445.2,257.4 L446.3,258.1 L447.4,258.8 L448.6,259.5 L449.7,260.2 L450.8,260.9 L452.0,261.5 L453.1,262.2 L454.2,262.8 L455.4,263.5 L456.5,264.1 L457.6,264.8 L458.8,265.4 L459.9,266.1 L461.0,266.7 L462.2,267.3 L463.3,267.9 L464.4,268.5 L465.6,269.1 L466.7,269.7 L467.8,270.3 L469.0,270.9 L470.1,271.5 L471.2,272.1 L472.4,272.6 L473.5,273.2 L474.6,273.8 L475.8,274.3 L476.9,274.9 L478.0,275.4 L479.2,275.9 L480.3,276.5 L481.4,277.0 L482.6,277.5 L483.7,278.1 L484.8,278.6 L486.0,279.1 L487.1,279.6 L488.2,280.1 L489.4,280.6 L490.5,281.1 L491.6,281.5 L492.8,282.0 L493.9,282.5 L495.0,283.0 L496.2,283.4 L497.3,283.9 L498.4,284.4 L499.6,284.8 L500.7,285.3 L501.8,285.7 L503.0,286.1 L504.1,286.6 L505.2,287.0 L506.4,287.4 L507.5,287.9 L508.6,288.3 L509.8,288.7 L510.9,289.1 L512.0,289.5 L513.2,289.9 L514.3,290.3 L515.4,290.7 L516.6,291.1 L517.7,291.5 L518.8,291.8 L520.0,292.2 L521.1,292.6 L522.2,293.0 L523.4,293.3 L524.5,293.7 L525.6,294.0 L526.8,294.4 L527.9,294.7 L529.0,295.1 L530.2,295.4 L531.3,295.8 L532.4,296.1 L533.6,296.4 L534.7,296.8 L535.8,297.1 L537.0,297.4 L538.1,297.7 L539.2,298.0 L540.4,298.4 L541.5,298.7 L542.6,299.0 L543.8,299.3 L544.9,299.6 L546.0,299.9 L547.2,300.2 L548.3,300.4 L549.4,300.7 L550.6,301.0 L551.7,301.3 L552.8,301.6 L554.0,301.8 L555.1,302.1 L556.2,302.4 L557.4,302.6 L558.5,302.9 L559.6,303.2 L560.8,303.4 L561.9,303.7 L563.0,303.9 L564.2,304.2 L565.3,304.4 L566.4,304.6 L567.6,304.9 L568.7,305.1 L569.8,305.4 L571.0,305.6 L572.1,305.8 L573.2,306.0 L574.4,306.3 L575.5,306.5 L576.6,306.7 L577.8,306.9 L578.9,307.1 L580.0,307.3 L581.2,307.5 L582.3,307.7 L583.4,307.9 L584.6,308.1 L585.7,308.3 L586.8,308.5 L588.0,308.7 L589.1,308.9 L590.2,309.1 L591.4,309.3 L592.5,309.5 L593.6,309.7 L594.8,309.9 L595.9,310.0 L597.0,310.2 L598.2,310.4 L599.3,310.6 L600.4,310.7 L601.6,310.9 L602.7,311.1 L603.8,311.2 L605.0,311.4 L606.1,311.5 L607.2,311.7 L608.4,311.9 L609.5,312.0 L610.6,312.2 L611.8,312.3 L612.9,312.5 L614.0,312.6 L615.2,312.8 L616.3,312.9 L617.4,313.1 L618.6,313.2 L619.7,313.3 L620.8,313.5 L622.0,313.6 L623.1,313.7 L624.2,313.9 L625.4,314.0 L626.5,314.1 L627.6,314.3 L628.8,314.4 L629.9,314.5 L631.0,314.6 L632.2,314.8 L633.3,314.9 L634.4,315.0 L635.6,315.1 L636.7,315.2 L637.8,315.3 L639.0,315.5 L640.1,315.6 L641.2,315.7 L642.4,315.8 L643.5,315.9 L644.6,316.0 L645.8,316.1 L646.9,316.2 L648.0,316.3 L649.2,316.4 L650.3,316.5 L651.4,316.6 L652.6,316.7 L653.7,316.8 L654.8,316.9 L656.0,317.0 L657.1,317.1 L658.2,317.2 L659.4,317.3 L660.5,317.4 L661.6,317.4 L662.8,317.5 L663.9,317.6 L665.0,317.7 L666.2,317.8 L667.3,317.9 L668.4,317.9 L669.6,318.0 L670.7,318.1 L671.8,318.2 L673.0,318.3 L674.1,318.3 L675.2,318.4 L676.4,318.5 L677.5,318.6 L678.6,318.6 L679.8,318.7 L680.9,318.8 L682.0,318.8 L683.2,318.9 L684.3,319.0 L685.4,319.1 L686.6,319.1 L687.7,319.2 L688.8,319.2 L690.0,319.3 L691.1,319.4 L692.2,319.4 L693.4,319.5 L694.5,319.6 L695.6,319.6 L696.8,319.7 L697.9,319.7 L699.0,319.8 L700.2,319.9 L701.3,319.9 L702.4,320.0 L703.6,320.0 L704.7,320.1 L705.8,320.1 L707.0,320.2 L708.1,320.2 L709.2,320.3 L710.4,320.3 L711.5,320.4 L712.6,320.4 L713.8,320.5 L714.9,320.5 L716.0,320.6 L717.2,320.6 L718.3,320.7 L719.4,320.7 L720.6,320.8 L721.7,320.8 L722.8,320.8 L724.0,320.9 L725.1,320.9 L726.2,321.0 L727.4,321.0 L728.5,321.1 L729.6,321.1 L730.8,321.1 L731.9,321.2 L733.0,321.2 L734.2,321.3 L735.3,321.3"/>
+<path class="dry" d="M56.4,289.9 L57.6,287.5 L58.7,285.1 L59.8,282.7 L61.0,280.2 L62.1,277.7 L63.2,275.1 L64.4,272.5 L65.5,269.9 L66.6,267.2 L67.8,264.5 L68.9,261.8 L70.0,259.0 L71.2,256.2 L72.3,253.4 L73.4,250.6 L74.6,247.8 L75.7,244.9 L76.8,242.0 L78.0,239.2 L79.1,236.3 L80.2,233.4 L81.4,230.5 L82.5,227.6 L83.6,224.7 L84.8,221.7 L85.9,218.8 L87.0,215.9 L88.2,213.0 L89.3,210.1 L90.4,207.2 L91.6,204.3 L92.7,201.5 L93.8,198.6 L95.0,247.5 L96.1,211.6 L97.2,190.1 L98.4,187.2 L99.5,184.4 L100.6,183.5 L101.8,190.6 L102.9,176.2 L104.0,173.5 L105.2,170.7 L106.3,168.1 L107.4,165.4 L108.6,162.8 L109.7,160.2 L110.8,157.6 L112.0,155.0 L113.1,152.5 L114.2,150.3 L115.4,147.5 L116.5,145.1 L117.6,143.8 L118.8,140.3 L119.9,138.0 L121.0,135.6 L122.2,133.4 L123.3,131.1 L124.4,128.9 L125.6,127.0 L126.7,124.6 L127.8,122.4 L129.0,120.4 L130.1,118.3 L131.2,116.4 L132.4,114.3 L133.5,112.4 L134.6,110.5 L135.8,108.7 L136.9,106.8 L138.0,105.3 L139.2,103.3 L140.3,101.6 L141.4,100.0 L142.6,98.6 L143.7,97.3 L144.8,95.5 L146.0,93.6 L147.1,92.1 L148.2,90.7 L149.4,89.3 L150.5,87.9 L151.6,86.8 L152.8,85.3 L153.9,84.0 L155.0,82.9 L156.2,81.6 L157.3,80.5 L158.4,79.8 L159.6,79.7 L160.7,77.3 L161.8,76.3 L163.0,77.7 L164.1,74.6 L165.2,73.8 L166.4,73.6 L167.5,72.9 L168.6,75.8 L169.8,70.4 L170.9,69.7 L172.0,69.4 L173.2,70.0 L174.3,67.8 L175.4,69.1 L176.6,66.8 L177.7,74.0 L178.8,69.0 L180.0,68.5 L181.1,68.7 L182.2,64.8 L183.4,65.6 L184.5,67.3 L185.6,73.9 L186.8,70.4 L187.9,65.5 L189.0,63.5 L190.2,68.9 L191.3,65.3 L192.4,64.9 L193.6,69.1 L194.7,66.8 L195.8,63.5 L197.0,65.0 L198.1,66.7 L199.2,67.8 L200.4,68.6 L201.5,64.7 L202.6,64.3 L203.8,66.5 L204.9,64.6 L206.0,65.2 L207.2,64.9 L208.3,65.3 L209.4,65.6 L210.6,66.0 L211.7,66.4 L212.8,66.8 L214.0,67.3 L215.1,67.8 L216.2,68.3 L217.4,68.8 L218.5,69.3 L219.6,69.9 L220.8,70.5 L221.9,71.1 L223.0,71.7 L224.2,72.4 L225.3,73.1 L226.4,73.8 L227.6,74.5 L228.7,76.0 L229.8,79.4 L231.0,78.8 L232.1,84.0 L233.2,99.0 L234.4,81.7 L235.5,94.9 L236.6,92.4 L237.8,88.1 L238.9,104.4 L240.0,114.7 L241.2,103.0 L242.3,151.9 L243.4,162.8 L244.6,174.3 L245.7,160.4 L246.8,174.2 L248.0,150.4 L249.1,194.4 L250.2,174.7 L251.4,200.6 L252.5,150.3 L253.6,133.0 L254.8,180.2 L255.9,203.3 L257.0,207.4 L258.2,190.6 L259.3,231.4 L260.4,234.7 L261.6,201.3 L262.7,235.5 L263.8,234.8 L265.0,228.7 L266.1,225.4 L267.2,246.3 L268.4,220.3 L269.5,179.5 L270.6,243.8 L271.8,253.4 L272.9,232.8 L274.0,236.5 L275.2,256.6 L276.3,242.2 L277.4,238.5 L278.6,238.3 L279.7,240.9 L280.8,264.3 L282.0,260.7 L283.1,266.6 L284.2,254.6 L285.4,239.1 L286.5,263.4 L287.6,264.5 L288.8,247.9 L289.9,257.9 L291.0,267.9 L292.2,271.3 L293.3,270.1 L294.4,265.7 L295.6,259.6 L296.7,255.7 L297.8,254.1 L299.0,270.4 L300.1,277.2 L301.2,268.1 L302.4,264.1 L303.5,256.7 L304.6,265.3 L305.8,277.8 L306.9,280.6 L308.0,284.2 L309.2,286.0 L310.3,281.5 L311.4,279.5 L312.6,285.9 L313.7,271.8 L314.8,273.4 L316.0,273.6 L317.1,289.3 L318.2,289.4 L319.4,261.3 L320.5,284.7 L321.6,280.0 L322.8,282.2 L323.9,286.4 L325.0,269.0 L326.2,278.2 L327.3,283.2 L328.4,276.7 L329.6,264.1 L330.7,287.2 L331.8,263.8 L333.0,282.0 L334.1,286.0 L335.2,285.0 L336.4,275.3 L337.5,296.2 L338.6,282.6 L339.8,277.4 L340.9,271.7 L342.0,275.0 L343.2,296.0 L344.3,293.5 L345.4,266.7 L346.6,301.5 L347.7,302.1 L348.8,268.3 L350.0,261.7 L351.1,297.7 L352.2,302.3 L353.4,261.0 L354.5,282.1 L355.6,303.8 L356.8,302.1 L357.9,262.5 L359.0,299.9 L360.2,238.7 L361.3,296.4 L362.4,295.9 L363.6,250.0 L364.7,294.5 L365.8,302.2 L367.0,261.6 L368.1,301.3 L369.2,303.9 L370.4,263.7 L371.5,256.8 L372.6,265.2 L373.8,286.1 L374.9,249.2 L376.0,298.4 L377.2,305.2 L378.3,285.4 L379.4,264.5 L380.6,266.8 L381.7,286.5 L382.8,298.1 L384.0,252.1 L385.1,244.6 L386.2,235.9 L387.4,230.4 L388.5,261.6 L389.6,286.3 L390.8,268.5 L391.9,242.4 L393.0,242.6 L394.2,286.1 L395.3,274.5 L396.4,310.7 L397.6,263.3 L398.7,249.8 L399.8,239.9 L401.0,240.7 L402.1,243.1 L403.2,268.8 L404.4,261.5 L405.5,261.7 L406.6,244.9 L407.8,247.1 L408.9,261.5 L410.0,249.0 L411.2,249.3 L412.3,252.8 L413.4,249.6 L414.6,251.1 L415.7,251.2 L416.8,251.9 L418.0,252.7 L419.1,258.0 L420.2,254.8 L421.4,254.9 L422.5,255.6 L423.6,256.4 L424.8,257.1 L425.9,257.8 L427.0,258.6 L428.2,261.9 L429.3,259.9 L430.4,260.6 L431.6,261.3 L432.7,261.9 L433.8,262.6 L435.0,263.3 L436.1,279.7 L437.2,264.6 L438.4,265.2 L439.5,265.9 L440.6,266.5 L441.8,267.1 L442.9,267.7 L444.0,268.4 L445.2,269.0 L446.3,269.6 L447.4,270.2 L448.6,270.8 L449.7,271.4 L450.8,272.0 L452.0,272.5 L453.1,273.1 L454.2,273.7 L455.4,274.2 L456.5,274.8 L457.6,275.4 L458.8,275.9 L459.9,276.4 L461.0,277.0 L462.2,277.5 L463.3,278.0 L464.4,278.6 L465.6,279.1 L466.7,279.6 L467.8,280.1 L469.0,280.6 L470.1,281.1 L471.2,281.6 L472.4,282.1 L473.5,282.6 L474.6,283.0 L475.8,284.6 L476.9,301.6 L478.0,285.1 L479.2,284.9 L480.3,286.2 L481.4,285.8 L482.6,286.3 L483.7,286.7 L484.8,287.1 L486.0,287.6 L487.1,288.0 L488.2,288.4 L489.4,288.8 L490.5,289.2 L491.6,289.7 L492.8,290.1 L493.9,290.5 L495.0,290.9 L496.2,291.3 L497.3,291.6 L498.4,292.0 L499.6,292.4 L500.7,292.8 L501.8,293.2 L503.0,293.5 L504.1,293.9 L505.2,294.3 L506.4,294.6 L507.5,295.0 L508.6,295.3 L509.8,295.7 L510.9,296.0 L512.0,296.3 L513.2,296.7 L514.3,297.0 L515.4,297.3 L516.6,297.8 L517.7,298.0 L518.8,298.3 L520.0,298.6 L521.1,298.9 L522.2,299.2 L523.4,299.5 L524.5,299.8 L525.6,300.1 L526.8,300.4 L527.9,300.8 L529.0,301.0 L530.2,301.3 L531.3,301.6 L532.4,301.9 L533.6,305.4 L534.7,302.4 L535.8,302.7 L537.0,302.9 L538.1,303.2 L539.2,303.5 L540.4,303.7 L541.5,305.7 L542.6,314.2 L543.8,307.1 L544.9,304.7 L546.0,304.9 L547.2,305.4 L548.3,305.6 L549.4,305.9 L550.6,305.9 L551.7,307.3 L552.8,310.6 L554.0,307.0 L555.1,308.3 L556.2,307.0 L557.4,307.2 L558.5,316.3 L559.6,313.2 L560.8,314.4 L561.9,308.1 L563.0,308.3 L564.2,308.5 L565.3,313.5 L566.4,313.1 L567.6,309.3 L568.7,309.3 L569.8,312.1 L571.0,309.6 L572.1,309.8 L573.2,312.5 L574.4,320.8 L575.5,313.9 L576.6,316.5 L577.8,310.7 L578.9,311.0 L580.0,314.7 L581.2,314.2 L582.3,314.4 L583.4,314.4 L584.6,312.3 L585.7,316.7 L586.8,321.4 L588.0,320.5 L589.1,321.5 L590.2,316.6 L591.4,312.7 L592.5,314.7 L593.6,316.4 L594.8,320.3 L595.9,319.2 L597.0,317.6 L598.2,319.8 L599.3,313.7 L600.4,316.5 L601.6,317.4 L602.7,322.9 L603.8,321.1 L605.0,318.8 L606.1,314.9 L607.2,317.6 L608.4,321.4 L609.5,321.2 L610.6,320.2 L611.8,317.7 L612.9,316.5 L614.0,322.0 L615.2,318.4 L616.3,317.8 L617.4,321.0 L618.6,320.5 L619.7,318.2 L620.8,320.7 L622.0,321.3 L623.1,321.7 L624.2,320.7 L625.4,323.1 L626.5,320.0 L627.6,322.6 L628.8,321.5 L629.9,321.8 L631.0,322.8 L632.2,323.0 L633.3,318.6 L634.4,323.2 L635.6,320.7 L636.7,322.5 L637.8,322.2 L639.0,322.9 L640.1,320.9 L641.2,323.4 L642.4,323.2 L643.5,323.3 L644.6,323.7 L645.8,323.0 L646.9,322.2 L648.0,323.5 L649.2,323.4 L650.3,323.6 L651.4,323.4 L652.6,322.6 L653.7,322.4 L654.8,323.0 L656.0,323.1 L657.1,323.8 L658.2,323.2 L659.4,323.6 L660.5,323.4 L661.6,323.3 L662.8,323.3 L663.9,323.3 L665.0,323.4 L666.2,322.8 L667.3,322.6 L668.4,323.0 L669.6,322.2 L670.7,321.7 L671.8,320.6 L673.0,320.3 L674.1,319.9 L675.2,319.9 L676.4,319.9 L677.5,320.0 L678.6,320.0 L679.8,320.1 L680.9,320.1 L682.0,320.2 L683.2,320.2 L684.3,320.3 L685.4,320.3 L686.6,320.4 L687.7,320.4 L688.8,320.5 L690.0,320.5 L691.1,320.6 L692.2,320.6 L693.4,320.7 L694.5,320.7 L695.6,320.8 L696.8,320.8 L697.9,320.9 L699.0,320.9 L700.2,320.9 L701.3,321.0 L702.4,321.0 L703.6,321.1 L704.7,321.8 L705.8,323.7 L707.0,324.0 L708.1,324.0 L709.2,324.0 L710.4,324.0 L711.5,324.0 L712.6,324.0 L713.8,324.0 L714.9,324.0 L716.0,324.0 L717.2,324.0 L718.3,324.0 L719.4,324.0 L720.6,324.0 L721.7,324.0 L722.8,324.0 L724.0,324.0 L725.1,324.0 L726.2,324.0 L727.4,324.0 L728.5,324.0 L729.6,324.0 L730.8,324.0 L731.9,324.0 L733.0,324.0 L734.2,324.0 L735.3,324.0"/>
+<path class="hum" d="M56.4,289.0 L57.6,286.5 L58.7,284.1 L59.8,281.6 L61.0,279.0 L62.1,276.4 L63.2,273.7 L64.4,271.0 L65.5,268.3 L66.6,265.5 L67.8,262.7 L68.9,259.9 L70.0,257.1 L71.2,254.2 L72.3,251.3 L73.4,248.4 L74.6,245.4 L75.7,242.5 L76.8,239.5 L78.0,236.5 L79.1,233.5 L80.2,230.5 L81.4,227.4 L82.5,224.4 L83.6,221.4 L84.8,218.4 L85.9,215.3 L87.0,212.3 L88.2,209.2 L89.3,206.2 L90.4,203.2 L91.6,200.2 L92.7,197.2 L93.8,194.2 L95.0,233.5 L96.1,203.9 L97.2,185.2 L98.4,182.3 L99.5,179.3 L100.6,176.6 L101.8,177.0 L102.9,170.6 L104.0,167.7 L105.2,164.9 L106.3,162.0 L107.4,159.2 L108.6,156.5 L109.7,153.7 L110.8,151.0 L112.0,148.3 L113.1,145.6 L114.2,143.0 L115.4,140.3 L116.5,137.7 L117.6,135.5 L118.8,132.6 L119.9,130.1 L121.0,127.7 L122.2,125.2 L123.3,122.8 L124.4,120.4 L125.6,118.1 L126.7,115.8 L127.8,113.5 L129.0,111.3 L130.1,109.1 L131.2,106.9 L132.4,104.8 L133.5,102.7 L134.6,100.7 L135.8,98.6 L136.9,96.7 L138.0,94.7 L139.2,92.8 L140.3,90.9 L141.4,89.1 L142.6,87.3 L143.7,85.6 L144.8,83.9 L146.0,82.2 L147.1,80.6 L148.2,79.0 L149.4,77.4 L150.5,75.9 L151.6,74.4 L152.8,73.0 L153.9,71.6 L155.0,70.2 L156.2,68.9 L157.3,67.6 L158.4,66.4 L159.6,65.2 L160.7,64.0 L161.8,62.9 L163.0,61.8 L164.1,60.7 L165.2,59.7 L166.4,58.7 L167.5,57.8 L168.6,57.0 L169.8,56.0 L170.9,55.2 L172.0,54.4 L173.2,53.7 L174.3,53.0 L175.4,52.3 L176.6,51.7 L177.7,51.3 L178.8,50.6 L180.0,50.0 L181.1,49.6 L182.2,49.0 L183.4,48.6 L184.5,48.3 L185.6,48.2 L186.8,47.8 L187.9,47.3 L189.0,47.0 L190.2,47.0 L191.3,46.6 L192.4,46.5 L193.6,46.7 L194.7,46.4 L195.8,46.1 L197.0,46.2 L198.1,46.4 L199.2,46.7 L200.4,46.9 L201.5,46.4 L202.6,46.4 L203.8,46.8 L204.9,46.7 L206.0,47.1 L207.2,47.1 L208.3,47.4 L209.4,47.7 L210.6,48.0 L211.7,48.3 L212.8,48.7 L214.0,49.1 L215.1,49.5 L216.2,49.9 L217.4,50.4 L218.5,50.9 L219.6,51.4 L220.8,51.9 L221.9,52.5 L223.0,53.0 L224.2,53.6 L225.3,54.3 L226.4,54.9 L227.6,55.6 L228.7,56.7 L229.8,58.3 L231.0,58.7 L232.1,61.2 L233.2,66.5 L234.4,61.0 L235.5,66.9 L236.6,66.6 L237.8,64.1 L238.9,69.9 L240.0,73.7 L241.2,69.6 L242.3,86.9 L243.4,90.6 L244.6,95.2 L245.7,89.9 L246.8,96.0 L248.0,86.6 L249.1,104.9 L250.2,99.3 L251.4,113.1 L252.5,91.4 L253.6,85.3 L254.8,105.6 L255.9,115.9 L257.0,121.7 L258.2,113.3 L259.3,135.5 L260.4,138.8 L261.6,121.7 L262.7,141.7 L263.8,142.4 L265.0,140.9 L266.1,139.6 L267.2,153.9 L268.4,138.2 L269.5,117.5 L270.6,155.8 L271.8,164.4 L272.9,151.7 L274.0,155.8 L275.2,170.3 L276.3,161.5 L277.4,159.7 L278.6,161.0 L279.7,162.8 L280.8,182.6 L282.0,180.4 L283.1,186.9 L284.2,177.7 L285.4,167.0 L286.5,187.3 L287.6,189.5 L288.8,176.8 L289.9,186.7 L291.0,195.5 L292.2,200.4 L293.3,200.5 L294.4,197.7 L295.6,193.4 L296.7,192.8 L297.8,189.9 L299.0,204.6 L300.1,211.0 L301.2,205.0 L302.4,202.6 L303.5,197.1 L304.6,205.4 L305.8,217.3 L306.9,220.3 L308.0,223.8 L309.2,226.0 L310.3,222.0 L311.4,220.4 L312.6,227.8 L313.7,215.0 L314.8,217.8 L316.0,217.8 L317.1,234.6 L318.2,235.7 L319.4,208.3 L320.5,232.4 L321.6,228.9 L322.8,232.3 L323.9,238.2 L325.0,220.5 L326.2,231.8 L327.3,235.0 L328.4,229.1 L329.6,218.2 L330.7,242.9 L331.8,219.5 L333.0,239.5 L334.1,243.2 L335.2,241.6 L336.4,231.4 L337.5,252.4 L338.6,239.5 L339.8,233.2 L340.9,228.9 L342.0,232.7 L343.2,252.9 L344.3,250.6 L345.4,227.0 L346.6,261.4 L347.7,262.6 L348.8,230.2 L350.0,223.6 L351.1,257.9 L352.2,264.1 L353.4,222.7 L354.5,244.7 L355.6,267.2 L356.8,265.0 L357.9,228.3 L359.0,262.4 L360.2,209.1 L361.3,258.5 L362.4,259.8 L363.6,218.4 L364.7,257.6 L365.8,267.8 L367.0,229.1 L368.1,266.6 L369.2,270.9 L370.4,232.5 L371.5,225.8 L372.6,234.2 L373.8,250.4 L374.9,223.3 L376.0,266.3 L377.2,274.7 L378.3,253.8 L379.4,235.6 L380.6,238.0 L381.7,256.1 L382.8,267.9 L384.0,227.4 L385.1,222.2 L386.2,218.4 L387.4,217.5 L388.5,236.3 L389.6,257.4 L390.8,241.3 L391.9,224.6 L393.0,224.8 L394.2,256.3 L395.3,250.2 L396.4,285.8 L397.6,239.0 L398.7,230.7 L399.8,228.1 L401.0,229.0 L402.1,230.2 L403.2,244.0 L404.4,239.8 L405.5,241.6 L406.6,233.6 L407.8,234.6 L408.9,241.1 L410.0,236.5 L411.2,237.3 L412.3,238.8 L413.4,238.8 L414.6,239.7 L415.7,240.5 L416.8,241.3 L418.0,242.2 L419.1,244.0 L420.2,243.9 L421.4,244.6 L422.5,245.4 L423.6,246.2 L424.8,247.0 L425.9,247.8 L427.0,248.6 L428.2,250.2 L429.3,250.1 L430.4,250.9 L431.6,251.7 L432.7,252.4 L433.8,253.2 L435.0,253.9 L436.1,266.0 L437.2,255.4 L438.4,256.1 L439.5,256.8 L440.6,257.5 L441.8,258.2 L442.9,258.9 L444.0,259.6 L445.2,260.3 L446.3,260.9 L447.4,261.6 L448.6,262.3 L449.7,262.9 L450.8,263.6 L452.0,264.2 L453.1,264.9 L454.2,265.5 L455.4,266.2 L456.5,266.8 L457.6,267.4 L458.8,268.0 L459.9,268.6 L461.0,269.2 L462.2,269.8 L463.3,270.4 L464.4,271.0 L465.6,271.6 L466.7,272.2 L467.8,272.7 L469.0,273.3 L470.1,273.9 L471.2,274.4 L472.4,275.0 L473.5,275.5 L474.6,276.1 L475.8,277.0 L476.9,289.8 L478.0,277.8 L479.2,278.2 L480.3,278.9 L481.4,279.2 L482.6,279.7 L483.7,280.2 L484.8,280.7 L486.0,281.2 L487.1,281.7 L488.2,282.1 L489.4,282.6 L490.5,283.1 L491.6,283.6 L492.8,284.0 L493.9,284.5 L495.0,284.9 L496.2,285.4 L497.3,285.8 L498.4,286.3 L499.6,286.7 L500.7,287.1 L501.8,287.6 L503.0,288.0 L504.1,288.4 L505.2,288.8 L506.4,289.2 L507.5,289.6 L508.6,290.0 L509.8,290.4 L510.9,290.8 L512.0,291.2 L513.2,291.6 L514.3,292.0 L515.4,292.4 L516.6,292.7 L517.7,293.1 L518.8,293.5 L520.0,293.8 L521.1,294.2 L522.2,294.5 L523.4,294.9 L524.5,295.2 L525.6,295.6 L526.8,295.9 L527.9,296.3 L529.0,296.6 L530.2,296.9 L531.3,297.2 L532.4,297.5 L533.6,300.2 L534.7,298.2 L535.8,298.5 L537.0,298.8 L538.1,299.1 L539.2,299.4 L540.4,299.7 L541.5,301.0 L542.6,310.4 L543.8,302.9 L544.9,300.9 L546.0,301.1 L547.2,301.5 L548.3,301.7 L549.4,302.0 L550.6,302.2 L551.7,302.8 L552.8,305.3 L554.0,303.1 L555.1,303.7 L556.2,303.5 L557.4,303.8 L558.5,312.2 L559.6,309.0 L560.8,309.6 L561.9,304.8 L563.0,305.0 L564.2,305.2 L565.3,310.1 L566.4,308.7 L567.6,306.0 L568.7,306.2 L569.8,307.6 L571.0,306.6 L572.1,306.8 L573.2,308.9 L574.4,317.8 L575.5,310.0 L576.6,312.5 L577.8,307.9 L578.9,308.1 L580.0,310.7 L581.2,310.6 L582.3,310.6 L583.4,310.6 L584.6,309.3 L585.7,314.4 L586.8,319.6 L588.0,318.5 L589.1,319.5 L590.2,313.2 L591.4,310.2 L592.5,311.4 L593.6,313.3 L594.8,317.5 L595.9,316.5 L597.0,314.8 L598.2,317.8 L599.3,311.3 L600.4,313.1 L601.6,314.2 L602.7,321.9 L603.8,319.1 L605.0,315.9 L606.1,312.4 L607.2,315.0 L608.4,320.1 L609.5,320.3 L610.6,318.7 L611.8,315.2 L612.9,314.2 L614.0,321.3 L615.2,316.0 L616.3,315.9 L617.4,319.5 L618.6,318.7 L619.7,315.6 L620.8,318.7 L622.0,319.6 L623.1,320.4 L624.2,319.0 L625.4,322.3 L626.5,318.2 L627.6,321.6 L628.8,319.7 L629.9,320.6 L631.0,322.1 L632.2,322.3 L633.3,316.4 L634.4,322.2 L635.6,318.7 L636.7,321.3 L637.8,320.9 L639.0,322.1 L640.1,319.0 L641.2,322.9 L642.4,322.6 L643.5,322.7 L644.6,323.4 L645.8,322.3 L646.9,320.9 L648.0,323.0 L649.2,322.8 L650.3,323.2 L651.4,323.0 L652.6,321.4 L653.7,321.2 L654.8,322.1 L656.0,322.3 L657.1,323.6 L658.2,322.5 L659.4,323.2 L660.5,322.9 L661.6,322.6 L662.8,322.8 L663.9,322.7 L665.0,322.8 L666.2,322.0 L667.3,321.7 L668.4,322.7 L669.6,321.7 L670.7,321.1 L671.8,319.6 L673.0,319.4 L674.1,318.9 L675.2,318.8 L676.4,318.9 L677.5,318.9 L678.6,319.0 L679.8,319.1 L680.9,319.1 L682.0,319.2 L683.2,319.3 L684.3,319.3 L685.4,319.4 L686.6,319.4 L687.7,319.5 L688.8,319.6 L690.0,319.6 L691.1,319.7 L692.2,319.7 L693.4,319.8 L694.5,319.9 L695.6,319.9 L696.8,320.0 L697.9,320.0 L699.0,320.1 L700.2,320.1 L701.3,320.2 L702.4,320.2 L703.6,320.3 L704.7,321.3 L705.8,323.6 L707.0,324.0 L708.1,324.0 L709.2,323.9 L710.4,324.0 L711.5,324.0 L712.6,324.0 L713.8,324.0 L714.9,324.0 L716.0,324.0 L717.2,324.0 L718.3,324.0 L719.4,324.0 L720.6,324.0 L721.7,324.0 L722.8,324.0 L724.0,324.0 L725.1,324.0 L726.2,324.0 L727.4,324.0 L728.5,324.0 L729.6,324.0 L730.8,324.0 L731.9,324.0 L733.0,324.0 L734.2,324.0 L735.3,324.0"/>
+<text class="lab-hum" x="404.5" y="161.1">Most humid sounding</text>
+<text class="lab-dry" x="311.0" y="313.1" text-anchor="middle">Driest sounding</text>
+<text class="lab-bb" x="469.7" y="231.7">Blackbody</text>
+</svg>
+      </div>
+      <p class="fig-note">Infrared radiation reaching the ground on Chennai's driest and most humid clear-sky soundings, computed line by line from HITRAN water vapour and CO₂ lines plus the water vapour continuum. Humid air fills in the window where a dry sky lets the ground radiate to space. The few narrow notches are a modelling limit: line wings are truncated and the continuum is only included from 350 to 1400 cm⁻¹, which leaves at most about 4 W/m², around 1%, out of each total.</p>
+      <div class="spec" style="margin-top:40px">
+        <div class="row"><p class="meta">Soundings</p><p><strong>6,750 radiosonde launches</strong> from Chennai, 2000 to 2009 (the station's record ends in 2009). 2,962 were complete and clear-sky; 396 were sampled evenly across months.</p></div>
+        <div class="row"><p class="meta">Physics</p><p>Water vapour and CO₂ absorption line by line, a water vapour continuum across the thermal window, and a layer-by-layer flux calculation from the surface to 10 hPa. Clear sky means relative humidity under 95% up to 500 hPa.</p></div>
+        <div class="row"><p class="meta">Result</p><p>Mean sky emissivity <strong>0.84</strong> (range 0.65 to 0.94), mean downwelling 392 W/m². About 0.80 in the dry January to March months and 0.86 in the humid months.</p></div>
+      </div>
+      <div class="tbl-wrap" style="margin-top:40px">
+        <table>
+          <caption>Predicting clear-sky emissivity. Fitted models are scored on held-out soundings, five folds.</caption>
+          <thead><tr><th>Formula</th><th>Coefficients</th><th>RMSE</th><th>R²</th></tr></thead>
+          <tbody>
+            <tr><td>Brunt, surface humidity</td><td>published</td><td>0.050</td><td>0.01</td></tr>
+            <tr><td>Brutsaert, surface humidity</td><td>published</td><td>0.061</td><td>below 0</td></tr>
+            <tr><td>Prata, surface humidity</td><td>published</td><td>0.057</td><td>below 0</td></tr>
+            <tr><td>Brunt, surface humidity</td><td>fitted to Chennai</td><td>0.046</td><td>0.17</td></tr>
+            <tr><td>Brutsaert, surface humidity</td><td>fitted to Chennai</td><td>0.045</td><td>0.19</td></tr>
+            <tr class="win"><td>Total column water vapour</td><td>fitted to Chennai</td><td>0.031</td><td>0.62</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="prose">
+        <p>The published formulas explain almost none of the variation at Chennai, and refitting them only helps a little. What works is <strong>total water vapour in the column</strong>: error drops to 0.031, about 38% below the published Brunt formula. In humid tropical air the radiation reaching the ground comes from the lowest few kilometres, and humidity measured at the surface says little about how much water sits above it.</p>
+        <p class="stack"><span>Python</span><span>Selenium</span><span>Heat conduction</span><span>Regression</span><span>Gradient boosting</span><span>GeoPandas</span><span>HITRAN</span><span>Radiative transfer</span></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="../../#work">Back to all work</a>
+    <a href="mailto:madhav18oct@gmail.com">madhav18oct@gmail.com</a>
+    <a href="https://www.linkedin.com/in/madhavkrishnamangalams/" target="_blank" rel="noopener">LinkedIn</a>
+  </div>
+</footer>
+
+</body>
+</html>
